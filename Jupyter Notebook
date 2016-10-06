@@ -1,0 +1,556 @@
+# dont forget that you need to run this code in jupyter. download it at http://jupyter.readthedocs.io/en/latest/install.html
+----------------------------------
+
+# # Hypotesis:
+# ### 1) Is being born early in the year an advantage to make it to the big leage?
+# ### 2) Whats the most likely state to create Pro Baseball player?
+# ### 3) Do they move on their retirement? Death state
+# ### 4) whats was the average weight?
+# ### 5) whats was the average height?
+# (findings are tentative only)
+
+# In[201]:
+
+#First import libraies
+import io #to request data from a link
+import requests #to request data from a link
+import csv
+import os #to see working directory where we are located
+import sys #only needed to determine Python version number
+import matplotlib #only needed to determine Matplotlib version number
+import numpy as np
+import pandas as pd
+import seaborn as sns
+from scipy import stats #to discard outliers
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+from collections import Counter
+import matplotlib.patches as mpatches
+# matplotlib Enable inline plotting
+get_ipython().magic(u'matplotlib inline')
+# pylanb inline is a command that lets you show plots in ipython notebook.
+get_ipython().magic(u'pylab inline')
+#sets size in all documents graph
+pylab.rcParams['figure.figsize'] = (18.5, 10.5)
+
+
+# In[202]:
+
+#where are we working
+os.getcwd()
+
+
+# In[203]:
+
+#review what python version we are using, Pandas and Matplotlib
+print('Python version ' + sys.version)
+print('Pandas version ' + pd.__version__)
+print('Matplotlib version ' + matplotlib.__version__)
+
+
+# In[204]:
+
+#set up format
+sns.set(style="white", color_codes=True) #sets the background color https://stanford.edu/~mwaskom/software/seaborn/tutorial/aesthetics.html
+plt.rcParams["axes.labelsize"] = 16.
+plt.rcParams["xtick.labelsize"] = 14.
+plt.rcParams["ytick.labelsize"] = 14.
+plt.rcParams["legend.fontsize"] = 12.
+plt.rcParams["figure.figsize"] = [15., 6.]
+
+
+# In[205]:
+
+#import the data and read it and example
+
+url="https://gist.githubusercontent.com/Neyt/1dfb0709ba68af2cd11db2d0d837419e/raw/0e6e4d8667cde9ca7135a2b5a5dac5bf5883c548/Master.csv"
+s=requests.get(url).content
+df=pd.read_csv(io.StringIO(s.decode('utf-8')))
+df.head(6) #we are just printing the first 6 roads
+
+
+# Step Three - Data wrangling
+# Analyze data. they are called arrays. they suport a vectorized operations. "+" doesnt concatenate it adds. exponentiate **. And &, or  not 
+# 
+
+# In[206]:
+
+#variables in the spread sheet:
+df.info() #and type of data
+
+
+# Now we are going to see how much data is in the DataFrame and how mush is incomplete (Nan)
+
+# In[207]:
+
+print "Number of columns (variables):", df.shape[1] #gives number of column count
+Number_of_players = len(df)
+print "Number of rows (players):", len(df)
+print "how many Nan are in the DataFrame:"
+df.isnull().sum()
+
+
+# Now we are going to drop the incomplete Data.
+
+# In[208]:
+
+#drop the NaN
+df=df.dropna(axis=0, how='any', thresh=None, subset=None, inplace=False)
+
+
+# now lets verify that we dropped all the incomplete data:
+
+# In[209]:
+
+print "Number of columns (variables) after dropping Nan:", df.shape[1] #gives number of col count
+Number_of_players = len(df)
+print "Number of rows (players) after dropping Nan:", len(df)
+print "how many Nan are in the DataFrame:"
+df.isnull().sum()
+
+
+# now that the missing data is taken care of. Let visualize whats left:
+
+# In[210]:
+
+df.describe() #we can see the data statistics
+
+
+# In[211]:
+
+#take outliers off hight and weight
+df = df[np.abs(df.height-df.height.mean())<=(3*df.height.std())] #keep only the ones that are within +3 to -3 standard deviations in the column 'df.height'.
+df = df[np.abs(df.weight-df.weight.mean())<=(3*df.weight.std())]
+
+
+# In[212]:
+
+df.describe() #we can see the data statistics
+
+
+# Is this summary we can see that we are left with 7743 culumns accross the board.
+
+# In[213]:
+
+#describe only columns with text on them
+df.describe(include = ['O'])
+
+
+# In[214]:
+
+#describe columns with text and data.
+df.describe(include = 'all')
+
+
+# ## Making Histograms to Summarize the given data, and see patterns
+# 
+# # 1) Is being born early in the year an advantage to make it to the big leage? 
+# 
+
+# In[215]:
+
+#we create a function to see, mean, max and min. Also plot the data for a quick analysis.
+def review_info(data, bins, xlabel, ylabel):
+    print 'Mean:', np.mean(data)
+    print 'Minimum:', np.min(data)
+    print 'Maximum:', np.max(data)
+    df.groupby(['birthMonth'])['playerID'].count().plot(kind='bar')
+    #plt.hist(data,bins)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    
+    
+#graph month of birth in 12 different bins
+review_info(df.birthMonth, 12, 'Months', 'Number of proffesional players')
+plt.title('months where pro players where born')
+
+
+# ## conclusion:
+# Being born early in the year does not look like creating a significance advantage to make it into the as a proffesional baseball player.
+
+# # 2) Whats the most likely state to create Pro Baseball player?
+
+# In[216]:
+
+print 'numbers of birthds according to state:'
+births_per_state=df.birthState.value_counts()
+births_per_state
+
+
+# In[217]:
+
+#graphical representation of the information above
+plt.figure(figsize=(16, 8))
+pd.value_counts(df.birthState).iloc[:30].plot(kind='bar').set_xlabel('birthState');
+plt.title('top 30 states where pro players where born')
+plt.ylabel('number of players');
+
+
+# ## conclusion:
+# The most likely state (we have registered 7743 players with a state) to create Pro Baseball player is Pennsylvania(PA) with 835,
+# thats a 10.78% of the total. 
+# followed by Illinois (IL) with 585 (7.55%).
+# Taken on account the development of population US vs Pensilvanya since the 1900's(http://goo.gl/9AmTOA)
+# We dont have exact figures of the percentage of population of Pennsylvania from the range of this data (1836 to 1992) , but if 
+# we assume that hasnt change much, today population of Pennsylvania represent 4.01%.
+# 
+# that would mean that Pensylvania in this timeframe produced 268% more professional player than in should have. People in 
+# Penssylvania love thier baseball
+
+# 
+# 
+# # 3) Do Professional Baseball player moved on their retirement?
+# 
+
+# In[218]:
+
+#compare both arrays brith State vs death state
+#df.birthState vs df.deathState
+
+birth_death_state = np.array(df.birthState) == np.array(df.deathState)
+birth_death_state
+
+
+# Count True vs False as a %
+# We know from the data above that we have a size of data of 7743 for player with a Death and Birth state.
+
+# In[219]:
+
+#how many people died in the same state:
+np.sum(birth_death_state,keepdims=False)
+
+
+# In[220]:
+
+#graph the amount of pro players that died in the same state, vs the ones that didnt. 
+
+df['birth_death_state'] = np.array(df.birthState) == np.array(df.deathState)
+df.groupby(['birth_death_state'])['playerID'].count().plot(kind='bar')
+plt.title('pro players that died in the same state, vs the ones that didnt');
+plt.ylabel('number of players');
+
+
+# ## Conclusion: 
+# The percentage of proffesional players, in our dataframe, that moved (or where in another state) when they died are:
+
+# In[221]:
+
+# percentage of players that moved
+moved = 100.0*np.sum(birth_death_state,keepdims=False) / df.shape[0]
+moved
+
+
+# ## 4) whats the average weight (in pounds)?
+
+# In[222]:
+
+np.average(df.weight)
+
+
+# In[223]:
+
+#graph weight in 50 bins
+review_info(df.weight, 50, 'pounds', 'Number of profesional players')
+plt.title('number of pro players vs pounds');
+
+
+# ## Conclusion: 
+# the average Player weighted 176.67 pounds, and where more likely to be less heavy from if they where born form April to Jun. 
+
+# # 5) What was their avarage height? 
+
+# In[224]:
+
+#first we check the data we have:
+df[['height']].info()
+
+
+# In[225]:
+
+#graph height in months
+review_info(df.height, 12, 'height', 'Number of profesional players')
+plt.title('height vs months they where born ');
+
+
+# ## Conclusion: 
+# As we can see the average Player height is/was 71.23. with a min of 65 lb and a max of 78. (remember: we have tried this info to take outlier off)
+
+# ## Exploration Phase extra Multivariable 2d exploration
+
+# # - What is the relationship between height and weight?
+
+# In[226]:
+
+heigh_weight = df.groupby(['height'])['weight'].mean() #I'd gruoped the information for weight and height, and got the mean.
+
+#print the correlation between this 2 variables
+print "the correlation between heigh and weight is:"
+print pd.Series.corr(df['height'],df['weight'])
+
+#configure chart
+plt.xlabel('height')
+plt.ylabel('weight')
+plot(heigh_weight);
+plt.title('height vs weight ');
+
+
+# In[227]:
+
+#scatter plot of weight versus height
+df.plot.scatter(x='height', y='weight',s=50);
+plt.title('height vs weight ');
+
+
+# # conclusion:
+# There is a positive correlation of 0.66 between Weight and height, as to be spected. 
+
+# # Extra Analysis:
+# 
+
+# In[228]:
+
+#create a function called group to group data to compare it and get the mean.
+def group (column):
+    groupby= df.groupby(column).mean()
+    print groupby
+group (df.birthState)
+
+
+# # - Do certain states tend to produce taller or shorter players than other states? 
+
+# Lets see the talles players by state first:
+
+# In[229]:
+
+state_height = df.groupby('birthState').height.mean()
+state_height.nlargest(10)  # only sorts up to the N requested
+
+
+# In[230]:
+
+#color = dict(boxes='DarkGreen', whiskers='DarkOrange', medians='DarkBlue', caps='Gray')
+#plt.figure(figsize=(16, 8))
+state_height.nlargest(10).iloc[:29].plot(kind='bar').set_xlabel('birthState Name');
+plt.title('state vs height');
+
+
+# # conclusion:
+# The states that produce the highest players in average are:
+# Vargas                  77.00
+# Camaguey                76.00
+# Aragua                  74.00
+# Greater Manchester      74.00
+# NV                      74.00
+# Puerto Plata            74.00
+# Valverde                74.00
+# Monte Cristi            73.50
+# Pinar del Rio           73.50
+# San Pedro de Macoris    73.25
+
+# Lets see shorter players by state:
+
+# In[231]:
+
+#here is a numerical list of the satates with the smallest mean players in inches.
+state_height = df.groupby('birthState').height.mean()
+state_height.nsmallest(10)  # only sorts up to the N requested
+
+
+# In[232]:
+
+#here is a graphical deployment of the same information the in the former cell.
+plt.figure(figsize=(16, 8))
+state_height.nsmallest(10).iloc[:29].plot(kind='bar').set_xlabel('birthState Name');
+plt.title('birthState Name vs height');
+plt.ylabel('mean height');
+
+
+# # conclusion: 
+# The states that produced the smalles players in average are:
+# North Yorkshire    65.000000
+# New South Wales    67.000000
+# Swansea            67.000000
+# London             67.333333
+# Anzoategui         68.000000
+# Cienfuegos         68.000000
+# Staffordshire      68.000000
+# Suffolk            68.000000
+# West Midlands      68.000000
+# Wiltshire          68.000000
+
+# # What about heavier or lighter players?
+
+# In[233]:
+
+#here is a numerical list of the satates with the heaviest players in pounds.
+state_weight = df.groupby('birthState').weight.mean()
+state_weight.nlargest(10)  # only sorts up to the N requested
+
+
+# In[234]:
+
+#here are two graphical deployments of the same information the in the former cell.
+plt.figure(figsize=(16, 8))
+state_weight.nlargest(10).iloc[:29].plot(kind='bar').set_xlabel('birthState Name');
+plt.title('birthState Name vs weight');
+plt.ylabel('mean weight');
+
+state_height = df.boxplot(column=['weight'], by = ['birthState'])
+state_height.set_title('birthState')
+state_height.set_title('weight');
+plt.ylabel('mean weight');
+
+
+# # conclusion:
+# The states that created the heaviest players in average where Aragua                215.0
+# Monte Cristi          205.0
+# NV                    201.0
+# Camaguey              200.0
+# Puerto Plata          200.0
+# Greater Manchester    195.0
+# St. Croix             195.0
+# AK                    190.0
+# Cienfuegos            190.0
+# El Seibo              190.0
+
+# In[235]:
+
+#here is a numerical list of the satates with the lightests players expressed in pounds.
+state_weight = df.groupby('birthState').weight.mean()
+state_weight.nsmallest(10)  # only sorts up to the N requested
+
+
+# In[236]:
+
+#here are two graphical deployments of the same information the in the former cell.
+plt.figure(figsize=(16, 8))
+state_weight.nsmallest(10).iloc[:29].plot(kind='bar').set_xlabel('birthState Name')
+plt.title('birthState Name vs weight');
+plt.ylabel('weight');
+state_height = df.boxplot(column=['weight'], by = ['birthMonth'])
+state_height.set_title('birthMonth')
+state_height.set_title('weight');
+plt.ylabel('weight');
+
+
+# # conclusion:
+# The states that created the lightests players in average where:
+# West Midlands      145.000000
+# London             152.333333
+# Anzoategui         155.000000
+# Falcon             155.000000
+# Swansea            155.000000
+# New South Wales    158.000000
+# Powys              158.000000
+# Colon              160.000000
+# Las Villas         160.000000
+# Manchester         160.000000
+
+# # Is there any realtionship between month you where born and height?
+
+# In[237]:
+
+#function to compare 2 variables.
+state_height = df.boxplot(column=['height'], by = ['birthMonth'])
+state_height.set_title('birthMonth')
+state_height.set_title('height');
+plt.title('birthMonth vs height');
+plt.ylabel('height');
+
+
+# In[238]:
+
+#print the correlation between this 2 variables
+print "the correlation between birthMonth and height is:"
+print pd.Series.corr(df['birthMonth'],df['height'])
+
+
+# # conclusion:
+# After a visual inspection and a correlation of 0.006 I conclude that there is no major relationship between month you where born and height. (this conclusions are tentative, as posted at the beggining of this analysis)
+
+# # Conclusions Phase
+
+# ### Limitations and shortcomings of the analysis:
+# The limitations and shortcomings of the analysis are limited by the data set and the results are tentative only. 
+# Some o the fields have missing values, and I decided to not take them on account at all. This kind of desicion would affect results in a different way that if we decided to "guess" or "aproximate" thos missing values to create a smother data set.
+# I decided to do it this way, because I think is the most realistic way to interpret the current data. 
+# 
+# Also I decided to take outlier off in the analysis of "hight and weight" (3 standar desviations) because it seemed the most obvious thing to do . however this could be apply to all data.
+# 
+#      John Maynard Keynes — 'It is better to be roughly right than precisely wrong.' 
+# 
+# the percetange of the missing value in the data set are substantial. We initiated with 18846 rows of data and after depurating all NA (non aplicable or missing data) we where left with 7743 complete rows. 
+# That is a lost of 58.91% of the data. that is very significant and should be remarked. 
+# 
+# If a more detail analysis wanted to be made with the same data. I suggest depurating (N/A) by case (for each column you are analysing) instead of globally at the beginning. 
+# 
+# However in general terms, I dont think this missing values will affect in a sustantial way the results like mean weight or height. since the sample is still big enough to make it statistically significant. 
+# 
+# ### Suggestions:
+# Finally its important to run a statistical test to appreciate the significance of the results, whenever possible.
+
+# ### Conclusion summary:
+# I started this analysis with 5 hypotesis, which I later expanded. 
+# A detail result is commented under each analysis.
+# Lets revisit each of your initial hypotheses and what we concluded
+# 
+# ### 1) Is being born early in the year an advantage to make it to the big leage?
+# I came up with this hipotesys after reading a book "outliers by Malcolm Gladwell". It talked about the little hockey leage and how the cut-end-date was unfairly helping kids born in early months to get an advantage, since they are older. and this was notisable more with kids. 
+# I was wondering if that applied to baseball and the disavnatage would continue throught the years. 
+# Being born early in the year does not look like creating a significance advantage to make it into the as a proffesional baseball player. The reason for this is that the data shown in graph entittle 'months where pro players where born'
+# 
+# ### 2) Whats the most likely state to create Pro Baseball player?
+# The most likely state (we have registered 7743 players with a state) to create Pro Baseball player is Pennsylvania(PA) with 835,
+# thats a 10.78% of the total. 
+# followed by Illinois (IL) with 585 (7.55%).
+# Taken on account the development of population US vs Pensilvanya since the 1900's(http://goo.gl/9AmTOA)
+# We dont have exact figures of the percentage of population of Pennsylvania from the range of this data (1836 to 1992) , but if 
+# we assume that hasnt change much, today population of Pennsylvania represent 4.01%.
+# that would mean that Pensylvania in this timeframe produced 268% more professional player than in should have. 
+# People in Penssylvania love their baseball
+# 
+# ### 3) Do they move on their retirement? Death state
+# The percentage of proffesional players, in our dataframe, that moved (or where in another state) when they died are 50.95%. how ever why does this happend is unkonw
+# 
+# ### 4) whats was the average weight?
+# the average Player weighted 176.67 pounds, and where more likely to be less heavy from if they where born form April to Jun.
+# 
+# ### 5) whats was the average height?
+# As we can see the average Player height is/was 71.23 (remember: we have tried this info to take outlier off)
+# 
+# ### - What is the relationship between height and weight?
+# There is a positive correlation of 0.66 between Weight and height, as to be spected. 
+# 
+# ### - Do certain states tend to produce taller or shorter players than other states? 
+# 
+# The states that produce the highest players in average are:
+# Vargas                  77.00
+# Camaguey                76.00
+# Aragua                  74.00
+# Greater Manchester      74.00
+# NV                      74.00
+# Puerto Plata            74.00
+# Valverde                74.00
+# Monte Cristi            73.50
+# Pinar del Rio           73.50
+# San Pedro de Macoris    73.25
+# 
+# Shorter states
+# North Yorkshire    65.000000
+# New South Wales    67.000000
+# Swansea            67.000000
+# London             67.333333
+# Anzoategui         68.000000
+# Cienfuegos         68.000000
+# Staffordshire      68.000000
+# Suffolk            68.000000
+# West Midlands      68.000000
+# Wiltshire          68.000000
+# 
+# ### What about heavier or lighter players?
+# The states that created the heaviest players in average where Aragua 215.0 Monte Cristi 205.0 NV 201.0 Camaguey 200.0 Puerto Plata 200.0 Greater Manchester 195.0 St. Croix 195.0 AK 190.0 Cienfuegos 190.0 El Seibo 190.0
+# 
+# The states that created the lightests players in average where: West Midlands 145.000000 London 152.333333 Anzoategui 155.000000 Falcon 155.000000 Swansea 155.000000 New South Wales 158.000000 Powys 158.000000 Colon 160.000000 Las Villas 160.000000 Manchester 160.000000
+# ### Is there any realtionship between month you where born and height?
+# 
+# After a visual inspection and a correlation of 0.006 I conclude that there is no major relationship between month you where born and height. (this conclusions are tentative, as posted at the beggining of this analysis)
